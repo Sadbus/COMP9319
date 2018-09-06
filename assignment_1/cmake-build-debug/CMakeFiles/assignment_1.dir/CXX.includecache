@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/o/Documents/COMP9319/assignment_1/huffman.h
+string
+-
+iostream
+-
+queue
+-
+map
+-
+
+/home/o/Documents/COMP9319/assignment_1/util.cpp
+cstring
+-
+algorithm
+-
+util.h
+/home/o/Documents/COMP9319/assignment_1/util.h
+huffman.h
+/home/o/Documents/COMP9319/assignment_1/huffman.h
+
+/home/o/Documents/COMP9319/assignment_1/util.h
+cstdlib
+-
+fstream
+-
+iostream
+-
+vector
+-
+sys/types.h
+-
+sys/stat.h
+-
+unistd.h
+-
+map
+-
+
