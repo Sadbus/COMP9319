@@ -5,3 +5,4 @@ cmake-build-debug
 *.tmp
 *.bwt
 *.huffman
+*.txt
