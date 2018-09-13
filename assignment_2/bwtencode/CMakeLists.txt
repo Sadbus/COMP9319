@@ -3,4 +3,4 @@ project(bwtencode)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic")
 
-add_executable(bwtencode bwtencode.cpp)
+add_executable(bwtencode bwtencode.cpp bwt.cpp bwt.h encoder.cpp encoder.h)
