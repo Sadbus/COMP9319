@@ -18,7 +18,6 @@ protected:
     void write_encoded_file(const std::string &path, const std::string &s);
     std::string get_file_contents(const char *filename);
     std::map<char, unsigned int> construct_c_table(const std::string &s);
-    int rank(const char c, const unsigned int n, const std::string &s);
     void write_pos_info(const std::string &folder_path, const std::string &s, const char &d);
 
 };

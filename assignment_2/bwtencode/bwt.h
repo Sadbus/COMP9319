@@ -7,14 +7,18 @@
 
 
 #include <string>
+#include <vector>
 
 class BWT
 {
 public:
-    std::vector<int> compute_suffix_array(const std::string &s);
+    std::vector<int> build_suffix_array(const std::string &str);
 
 protected:
-    void bucket_sort(int a[], int n);
+    void sort_characters(const char *s, const size_t n, std::vector<int> &order);
+    void compute_char_classes(const char *s, const size_t n, const std::vector<int> &order, std::vector<int> &classes);
+    std::vector<int> sort_doubled(const char *S, const size_t n, const std::vector<int> &order, const std::vector<int> &classes, int L);
+    std::vector<int> update_classes(const std::vector<int> &newOrder, const std::vector<int> &classes, const int l);
 };
 
 

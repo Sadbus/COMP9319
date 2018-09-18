@@ -4,81 +4,9 @@
 #include <vector>
 #include <algorithm>
 #include <cstring>
+#include <ctime>
 #include "bwt.h"
 #include "encoder.h"
-
-struct suffix
-{
-    int index;
-    int rank[2];
-};
-
-int *buildSuffixArray(char *txt, int n)
-{
-    struct suffix suffixes[n];
-
-    for (int i = 0; i < n; ++i)
-    {
-        suffixes[i].index = i;
-        suffixes[i].rank[0] = txt[i] - 'a';
-        suffixes[i].rank[1] = ((i+1) < n)? (txt[i + 1] - 'a'): -1;
-    }
-
-    std::sort(suffixes, suffixes+n,
-              [](struct suffix a, struct suffix b)
-              {
-                  return (a.rank[0] == b.rank[0])? (a.rank[1] < b.rank[1] ?1: 0):
-                         (a.rank[0] < b.rank[0] ?1: 0);
-              });
-
-    int ind[n];
-
-    for (int k = 4; k < 2*n; k = k*2) {
-        int rank = 0;
-        int prev_rank = suffixes[0].rank[0];
-        suffixes[0].rank[0] = rank;
-        ind[suffixes[0].index] = 0;
-
-        for (int i = 1; i < n; ++i) {
-            if (suffixes[i].rank[0] == prev_rank &&
-                suffixes[i].rank[1] == suffixes[i - 1].rank[1]) {
-                prev_rank = suffixes[i].rank[0];
-                suffixes[i].rank[0] = rank;
-            } else {
-                prev_rank = suffixes[i].rank[0];
-                suffixes[i].rank[0] = ++rank;
-            }
-            ind[suffixes[i].index] = i;
-        }
-
-        for (int i = 0; i < n; ++i) {
-            int nextIndex = suffixes[i].index + k / 2;
-            suffixes[i].rank[1] = (nextIndex < n) ?
-                                  suffixes[ind[nextIndex]].rank[0] : -1;
-        }
-
-        std::sort(suffixes, suffixes + n,
-                  [](struct suffix a, struct suffix b) {
-                      return (a.rank[0] == b.rank[0]) ? (a.rank[1] < b.rank[1] ? 1 : 0) :
-                             (a.rank[0] < b.rank[0] ? 1 : 0);
-                  });
-    }
-
-    int *suffixArr = new int[n];
-    for (int i = 0; i < n; ++i)
-        suffixArr[i] = suffixes[i].index;
-
-    return suffixArr;
-
-
-}
-
-void printArr(int arr[], int n)
-{
-    for (int i = 0; i < n; i++)
-        std::cout << arr[i] << " ";
-    std::cout << std::endl;
-}
 
 std::string get_file_contents(const char *filename)
 {
@@ -96,6 +24,136 @@ std::string get_file_contents(const char *filename)
     throw(errno);
 }
 
+/**
+ * Time: O(|S|)
+ *
+ * Sort all cyclic rotations of S with length 1 using count sort
+ *
+ * @param order array of order
+ * @param S input string
+ * @param n length of S
+ */
+void sort_characters(const char *S, const size_t n, std::vector<int> &order)
+{
+    std::map<char, int> freq;
+
+    for (int i = 0; i < n; i++)
+        freq[S[i]]++;
+
+    //for (int j = 1; j < freq.size(); j++)
+    //    freq[j] = freq[j] + freq[j-1];
+
+
+    for (auto itr = std::next(freq.begin()); itr != freq.end(); itr++)
+       itr->second += std::prev(itr)->second;
+
+
+    for (int i = n-1; i >= 0; i--)
+    {
+        char c = S[i];
+        freq[c]--;
+        order[freq[c]] = i;
+    }
+}
+
+
+/**
+ * O(|S|) fucntion to assign classes to each character in string S
+ *
+ * @param classes
+ * @param order
+ * @param S
+ * @param n
+ */
+void compute_char_classes(const char *S, const size_t n, const std::vector<int> &order, std::vector<int> &classes)
+{
+    // Initialize psotition where the smallest string occours to 0
+    classes[order[0]] = 0;
+
+    // Assign classes
+    for (int i = 1; i < n; i++)
+    {
+        // if char is different than the previous one in the order ...
+        // i.e if curr is different then prev, curr is bigger
+        if (S[order[i]] != S[order[i-1]])
+            classes[order[i]] = classes[order[i-1]] + 1; // Assign new class
+        else // Character is same as previous
+            classes[order[i]] = classes[order[i-1]]; // Assign same class as prev char
+    }
+}
+
+std::vector<int> sort_doubled(const char *S, const size_t n, const std::vector<int> &order, const std::vector<int> &classes, int L)
+{
+    std::vector<int> count(n, 0);
+    std::vector<int> newOrder(n, 0);
+
+    for (int i = 0; i < n; i++)
+        count[classes[i]]++;
+
+    for (int j = 1; j < n; j++)
+        count[j] += count[j-1];
+
+    for (int i = static_cast<int>(n - 1); i >= 0; i--)
+    {
+        int start = static_cast<int>((order[i] - L + n) % n);
+        int cl = classes[start];
+        count[cl]--;
+        newOrder[count[cl]] = start;
+    }
+
+    return newOrder;
+}
+
+std::vector<int> update_classes(const std::vector<int> &newOrder, const  std::vector<int> &classes, const int L)
+{
+    int n = newOrder.size();
+    std::vector<int> newClass(n);
+    newClass[newOrder[0]] = 0;
+
+    for (int i = 1; i < n; i++)
+    {
+        int curr = newOrder[i];
+        int prev = newOrder[i - 1];
+        int mid = (curr + L);
+        int midPrev = (prev + L) % n;
+
+        if (classes[curr] != classes[prev] || classes[mid] != classes[midPrev])
+            newClass[curr] = newClass[prev] + 1;
+        else
+            newClass[curr] = newClass[prev];
+    }
+    return newClass;
+}
+
+void build_suffix_array(const std::string &str)
+{
+    char *S = new char[str.length() + 1];
+    strcpy(S, str.c_str());
+
+    size_t n = str.length();
+
+    std::vector<int> order(n, 0);
+    std::vector<int> classes(n, 0);
+
+    sort_characters(S, n, order);
+    compute_char_classes(S, n, order, classes);
+    int L = 1;
+
+    while (L < n)
+    {
+           order = sort_doubled(S, n, order, classes, L);
+           classes = update_classes(order, classes, L);
+           L = 2*L;
+    }
+
+    //std::cout << "Order = {";
+    //for (int i = 0; i < n; i++)
+    //    std::cout << order[i] << ", ";
+    //std::cout << "}" << std::endl;
+
+}
+
+
 int main(int argc, char* argv[])
 {
     if (argc < 5)
@@ -105,41 +163,27 @@ int main(int argc, char* argv[])
     }
 
     std::string str = argv[1];
-    char d = '0';
+    char d;
 
     if (str.find("\\n") != std::string::npos)
         d = '\n';
     else
         d = str.at(3);
 
+    std::string s = get_file_contents(argv[3]);
+    std::cout << "Size of file: " << s.size() / 1024 << " KB" << std::endl;
+
+
+    std::clock_t begin = std::clock();
 
     Encoder encoder;
     encoder.encode(d, argv[2], argv[3], argv[4]);
 
+    std::clock_t end = clock();
 
-    /*
-    std::string str = get_file_contents(argv[3]);
-
-    char txt[str.size()];
-    std::strcpy(txt, str.c_str());
-    int n = strlen(txt);
-    int *suffixArr = buildSuffixArray(txt,  n);
-    std::cout << "Following is suffix array for " << txt << std::endl;
-    printArr(suffixArr, n);
-
-    int bwtArr[n];
-    for (int i = 0; i < n; i++)
-    {
-        bwtArr[i] = suffixArr[i] - 1;
-        if (bwtArr[i] == -1)
-            bwtArr[i] = n;
-    }
-
-    printArr(bwtArr, n);
-
-    for (int i = 0; i < n; i++)
-        std::cout << txt[bwtArr[i]];
-    */
+    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+    std::cout << "Time elapsed: " << elapsed_secs << " sec" << std::endl;
 
     return 0;
 }
+

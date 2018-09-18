@@ -2,69 +2,153 @@
 // Created by Olav Markus Sjursoe on 7/09/18.
 //
 
-#include <vector>
-#include <algorithm>
-#include <numeric>
 #include "bwt.h"
-#include <iostream>
 
-void BWT::bucket_sort(int *a, const int n)
-{
-    int i, j, k, buckets[10];
+#include <vector>
+#include <map>
+#include <cstring>
 
-    for (int i = 0; i < 10; i++)
-        buckets[i] = 0;
 
-    for (i = 0; i < n; ++i)
-        ++buckets[a[i]];
+/**
+ *
+ * @param str
+ * @return
+ */
+std::vector<int> BWT::build_suffix_array(const std::string &str) {
+    char *S = new char[str.length() + 1];
+    strcpy(S, str.c_str());
 
-    for (i = 0, j = 0; j < 10; ++j)
-        for (k = buckets[j]; k > 0; --k)
-            a[i++] = j;
+    size_t n = str.length();
+
+    std::vector<int> order(n, 0);
+    std::vector<int> classes(n, 0);
+
+    sort_characters(S, n, order);
+    compute_char_classes(S, n, order, classes);
+    int L = 1;
+
+    while (L < n)
+    {
+        order = sort_doubled(S, n, order, classes, L);
+        classes = update_classes(order, classes, L);
+        L = 2*L;
+    }
+
+    return order;
 }
 
-std::vector<int> BWT::compute_suffix_array(const std::string &s)
+/**
+ * Time: O(|S|)
+ *
+ * Sort all cyclic rotations of S with length 1 using count sort
+ *
+ * @param order array of order
+ * @param S input string
+ * @param n length of S
+ */
+void BWT::sort_characters(const char *s, const size_t n, std::vector<int> &order)
 {
-    const int n = s.size();
-    std::vector<int> suffixArray(n);
+    std::map<char, int> freq;
 
-    // Fills the vector with integers in the range of [0, n-1]
-    std::iota (std::begin(suffixArray), std::end(suffixArray), 0);
+    for (int i = 0; i < n; i++)
+        freq[s[i]]++;
 
-    // Sorts the vector of indexes lexicographically, without actually
-    // storing the suffixes.
-    std::sort(suffixArray.begin(), suffixArray.end(),
-              [&s, &n](int x, int y)
-              {
-                  return s.substr(x, n-x) < s.substr(y, n-y);
-              });
+    //for (int j = 1; j < freq.size(); j++)
+    //    freq[j] = freq[j] + freq[j-1];
 
 
-    return suffixArray;
-
-    /*
-  int bwtArray[n];
-
-  // creates an array of bwt indexes by subtracting 1 from each
-  // index of the suffix array.
-  for (int i = 0; i < vec.size(); i++)
-  {
-      bwtArray[i] = vec[i] - 1;
-      if (bwtArray[i] < 0)
-          bwtArray[i] = n - 1;
-
-  }
-
-  std::string bwt;
-
-  // Creates the bwt from the suffix array
-  for (int i = 0; i < n; i++)
-  {
-      bwt.append(s.substr(bwtArray[i], 1));
-  }
+    for (auto itr = std::next(freq.begin()); itr != freq.end(); itr++)
+        itr->second += std::prev(itr)->second;
 
 
+    for (int i = n-1; i >= 0; i--)
+    {
+        char c = s[i];
+        freq[c]--;
+        order[freq[c]] = i;
+    }
+}
 
-    return bwt;
-       */
+/**
+ * O(|S|) fucntion to assign classes to each character in string S
+ *
+ * @param classes
+ * @param order
+ * @param S
+ * @param n
+ */
+void BWT::compute_char_classes(const char *s, const size_t n, const std::vector<int> &order, std::vector<int> &classes)
+{
+    // Initialize psotition where the smallest string occours to 0
+    classes[order[0]] = 0;
+
+    // Assign classes
+    for (int i = 1; i < n; i++)
+    {
+        // if char is different than the previous one in the order ...
+        // i.e if curr is different then prev, curr is bigger
+        if (s[order[i]] != s[order[i-1]])
+            classes[order[i]] = classes[order[i-1]] + 1; // Assign new class
+        else // Character is same as previous
+            classes[order[i]] = classes[order[i-1]]; // Assign same class as prev char
+    }
+}
+
+/**
+ *
+ * @param s
+ * @param n
+ * @param order
+ * @param classes
+ * @param l
+ * @return
+ */
+std::vector<int> BWT::sort_doubled(const char *s, const size_t n, const std::vector<int> &order, const std::vector<int> &classes, int l)
+{
+    std::vector<int> count(n, 0);
+    std::vector<int> newOrder(n, 0);
+
+    for (int i = 0; i < n; i++)
+        count[classes[i]]++;
+
+    for (int j = 1; j < n; j++)
+        count[j] += count[j-1];
+
+    for (int i = static_cast<int>(n - 1); i >= 0; i--)
+    {
+        int start = static_cast<int>((order[i] - l + n) % n);
+        int cl = classes[start];
+        count[cl]--;
+        newOrder[count[cl]] = start;
+    }
+
+    return newOrder;
+}
+
+/**
+ *
+ * @param newOrder
+ * @param classes
+ * @param l
+ * @return
+ */
+std::vector<int> BWT::update_classes(const std::vector<int> &newOrder, const std::vector<int> &classes, const int l)
+{
+    int n = newOrder.size();
+    std::vector<int> newClass(n);
+    newClass[newOrder[0]] = 0;
+
+    for (int i = 1; i < n; i++)
+    {
+        int curr = newOrder[i];
+        int prev = newOrder[i - 1];
+        int mid = (curr + l);
+        int midPrev = (prev + l) % n;
+
+        if (classes[curr] != classes[prev] || classes[mid] != classes[midPrev])
+            newClass[curr] = newClass[prev] + 1;
+        else
+            newClass[curr] = newClass[prev];
+    }
+    return newClass;
 }

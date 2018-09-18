@@ -2,14 +2,22 @@
 // Created by Olav Markus Sjursoe on 7/09/18.
 //
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include <cstring>
 #include <sstream>
+#include <math.h>
+#include <ctime>
+
 #include "encoder.h"
 #include "bwt.h"
 
+/**
+ *
+ * @param path
+ * @param s
+ */
 void Encoder::write_encoded_file(const std::string &path, const std::string &s)
 {
     std::fstream file(path, std::ios::out | std::ios::binary);
@@ -17,6 +25,12 @@ void Encoder::write_encoded_file(const std::string &path, const std::string &s)
     file.close();
 }
 
+/**
+ *
+ * @param folder_path
+ * @param s
+ * @param d
+ */
 void Encoder::write_pos_info(const std::string &folder_path, const std::string &s, const char &d)
 {
     // TODO: Change this to input filename +.aux
@@ -40,6 +54,11 @@ void Encoder::write_pos_info(const std::string &folder_path, const std::string &
     }
 }
 
+/**
+ *
+ * @param filename
+ * @return
+ */
 std::string Encoder::get_file_contents(const char *filename)
 {
     std::FILE *fp = std::fopen(filename, "rb");
@@ -56,18 +75,25 @@ std::string Encoder::get_file_contents(const char *filename)
     throw(errno);
 }
 
+/**
+ *
+ * @param d
+ * @param folderPath
+ * @param inputPath
+ * @param outputPath
+ */
 void Encoder::encode(const char &d, const std::string &folderPath,
                      const char *inputPath, const std::string &outputPath)
 {
     // Read the entire input file
     std::string s = get_file_contents(inputPath);
-    const unsigned int n = s.size();
 
+    const unsigned int n = s.size();
 
     BWT bwt;
 
     // Encode
-    std::vector<int> suffixArray = bwt.compute_suffix_array(s);
+    std::vector<int> suffixArray = bwt.build_suffix_array(s);
 
 
     std::string encoded;
