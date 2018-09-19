@@ -7,29 +7,29 @@
 #include <vector>
 #include <map>
 #include <cstring>
+#include <iostream>
+#include <algorithm>
 
 
 /**
  *
- * @param str
+ * @param s
  * @return
  */
-std::vector<int> BWT::build_suffix_array(const std::string &str) {
-    char *S = new char[str.length() + 1];
-    strcpy(S, str.c_str());
+std::vector<int> BWT::build_suffix_array(const std::string &s)
+{
+    size_t n = s.length();
 
-    size_t n = str.length();
+    std::vector<int> order(n);
+    std::vector<int> classes(n);
 
-    std::vector<int> order(n, 0);
-    std::vector<int> classes(n, 0);
-
-    sort_characters(S, n, order);
-    compute_char_classes(S, n, order, classes);
+    sort_characters(s, n, order);
+    compute_char_classes(s, n, order, classes);
     int L = 1;
 
     while (L < n)
     {
-        order = sort_doubled(S, n, order, classes, L);
+        order = sort_doubled(s, n, order, classes, L);
         classes = update_classes(order, classes, L);
         L = 2*L;
     }
@@ -46,22 +46,17 @@ std::vector<int> BWT::build_suffix_array(const std::string &str) {
  * @param S input string
  * @param n length of S
  */
-void BWT::sort_characters(const char *s, const size_t n, std::vector<int> &order)
+void BWT::sort_characters(const std::string &s, const size_t n, std::vector<int> &order)
 {
     std::map<char, int> freq;
 
     for (int i = 0; i < n; i++)
         freq[s[i]]++;
 
-    //for (int j = 1; j < freq.size(); j++)
-    //    freq[j] = freq[j] + freq[j-1];
-
-
     for (auto itr = std::next(freq.begin()); itr != freq.end(); itr++)
         itr->second += std::prev(itr)->second;
 
-
-    for (int i = n-1; i >= 0; i--)
+    for (int i = static_cast<int>(n - 1); i >= 0; i--)
     {
         char c = s[i];
         freq[c]--;
@@ -77,7 +72,7 @@ void BWT::sort_characters(const char *s, const size_t n, std::vector<int> &order
  * @param S
  * @param n
  */
-void BWT::compute_char_classes(const char *s, const size_t n, const std::vector<int> &order, std::vector<int> &classes)
+void BWT::compute_char_classes(const std::string &s, const size_t n, const std::vector<int> &order, std::vector<int> &classes)
 {
     // Initialize psotition where the smallest string occours to 0
     classes[order[0]] = 0;
@@ -103,10 +98,10 @@ void BWT::compute_char_classes(const char *s, const size_t n, const std::vector<
  * @param l
  * @return
  */
-std::vector<int> BWT::sort_doubled(const char *s, const size_t n, const std::vector<int> &order, const std::vector<int> &classes, int l)
+std::vector<int> BWT::sort_doubled(const std::string &s, const size_t n, const std::vector<int> &order, const std::vector<int> &classes, int l)
 {
-    std::vector<int> count(n, 0);
-    std::vector<int> newOrder(n, 0);
+    std::vector<int> count(n);
+    std::vector<int> newOrder(n);
 
     for (int i = 0; i < n; i++)
         count[classes[i]]++;
@@ -134,7 +129,7 @@ std::vector<int> BWT::sort_doubled(const char *s, const size_t n, const std::vec
  */
 std::vector<int> BWT::update_classes(const std::vector<int> &newOrder, const std::vector<int> &classes, const int l)
 {
-    int n = newOrder.size();
+    size_t n = newOrder.size();
     std::vector<int> newClass(n);
     newClass[newOrder[0]] = 0;
 
@@ -142,13 +137,14 @@ std::vector<int> BWT::update_classes(const std::vector<int> &newOrder, const std
     {
         int curr = newOrder[i];
         int prev = newOrder[i - 1];
-        int mid = (curr + l);
-        int midPrev = (prev + l) % n;
+        int mid = static_cast<int>((curr + l) % n);
+        int midPrev = static_cast<int>((prev + l) % n);
 
         if (classes[curr] != classes[prev] || classes[mid] != classes[midPrev])
             newClass[curr] = newClass[prev] + 1;
         else
             newClass[curr] = newClass[prev];
     }
+
     return newClass;
 }

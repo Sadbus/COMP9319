@@ -87,23 +87,23 @@ void Encoder::encode(const char &d, const std::string &folderPath,
 {
     // Read the entire input file
     std::string s = get_file_contents(inputPath);
+    std::cout << "Size of file: " << s.length() / 1024 << " KB" << std::endl;
 
-    const unsigned int n = s.size();
 
     BWT bwt;
 
     // Encode
     std::vector<int> suffixArray = bwt.build_suffix_array(s);
 
-
+    // Construct last column of BWT from suffix array in linear time
     std::string encoded;
 
-    for (int i = 0; i < n; ++i)
+    for (int i = 0; i < s.length(); ++i)
     {
         int bwtIndex = suffixArray[i] - 1;
 
         if (bwtIndex < 0)
-            bwtIndex = n -1;
+            bwtIndex = s.length() - 1;
 
         encoded.append(s.substr(bwtIndex, 1));
     }
