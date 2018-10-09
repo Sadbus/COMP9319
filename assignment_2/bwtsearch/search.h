@@ -13,31 +13,28 @@
 
 class Search {
 public:
-    Search(const std::string &input_file)
-    {
-        Util util;
-        L = util.get_file_contents(input_file);
-
-        create_c_table();
-    }
-
-
-    void num_substring_matches(const char d, const std::string &index_folder, const std::string &query);
-    void num_record_matches(const char d, const std::string &index_folder, const std::string &query);
-    void print_identifiers(const char d, const std::string &index_folder, const std::string &query);
-    void print_records(const char d, const std::string &index_folder, const std::string &query);
+    Search(const std::string &input_file, const std::string &index_folder);
+    void num_substring_matches(char d, const std::string &index_folder, const std::string &query);
+    void num_record_matches(char d, const std::string &index_folder, const std::string &query);
+    void print_identifiers(char d, const std::string &index_folder, const std::string &query);
+    void print_records(char d, const std::string &index_folder, const std::string &query);
 
 protected:
-    int backward_search(const std::string query);
-    int rank(const char c, const unsigned int n);
+    int backward_search(std::string query);
+    int locate(unsigned int lpos);
+    int rank(char c, unsigned int n);
     void create_c_table();
 
     // dictionary containing mappings from characters to number
     // of characters alphabetically smaller
     std::map<char, unsigned int> c_table;
+    std::vector<int> pos;
 
     // Last column of bwt transform
-    std::string L;
+    //std::string L;
+    std::string filename;
+
+    Util util;
 };
 
 

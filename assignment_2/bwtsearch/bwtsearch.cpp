@@ -3,6 +3,7 @@
 #include <map>
 #include <sstream>
 #include <vector>
+#include <ctime>
 #include "util.h"
 #include "search.h"
 
@@ -25,16 +26,18 @@ int main(int argc, char* argv[])
     }
 
     std::string str = argv[1];
-    char d = '0';
+    char d;
 
     if (str.find("\\n") != std::string::npos)
         d = '\n';
     else
-        d = str.at(1);
+        d = str[1];
 
     std::string option = argv[4];
 
-    Search search(argv[2]);
+    Search search(argv[2], argv[3]);
+
+    std::clock_t begin = std::clock();
 
     try
     {
@@ -72,7 +75,7 @@ int main(int argc, char* argv[])
             }
             */
 
-            // Display the content of the records with ids provided in the search term
+            //Display the content of the records with ids provided in the search term
             search.print_records(d, argv[3], argv[5]);
         }
     }
@@ -81,6 +84,11 @@ int main(int argc, char* argv[])
         std::cerr << e.what() << std::endl;
         return 1;
     }
+
+    std::clock_t end = clock();
+
+    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+    //std::cout << "Time elapsed: " << elapsed_secs << " sec" << std::endl;
 
     return 0;
 }

@@ -2,115 +2,78 @@
 // Created by Olav Markus Sjursoe on 7/09/18.
 //
 
-#include <cstring>
-#include <fstream>
-#include <iostream>
-#include <vector>
-#include <sstream>
-#include <math.h>
-#include <ctime>
+#include <algorithm>
 
-#include "encoder.h"
 #include "bwt.h"
+#include "encoder.h"
+#include "util.h"
+
 
 /**
  *
- * @param path
- * @param s
- */
-void Encoder::write_encoded_file(const std::string &path, const std::string &s)
-{
-    std::fstream file(path, std::ios::out | std::ios::binary);
-    file << s;
-    file.close();
-}
-
-/**
- *
- * @param folder_path
- * @param s
- * @param d
- */
-void Encoder::write_pos_info(const std::string &folder_path, const std::string &s, const char &d)
-{
-    // TODO: Change this to input filename +.aux
-    std::string filename = "pos.aux";
-    std::string filepath = folder_path + "/" + filename;
-
-    std::fstream file(filepath, std::ios::out | std::ios::binary);
-
-    int index = 0;
-    int prev = 0;
-    for (char c : s)
-    {
-        if (c == d)
-        {
-            file << prev+index << ",";
-            prev += index;
-            index = 0;
-        }
-
-        index++;
-    }
-}
-
-/**
- *
- * @param filename
- * @return
- */
-std::string Encoder::get_file_contents(const char *filename)
-{
-    std::FILE *fp = std::fopen(filename, "rb");
-    if (fp)
-    {
-        std::string contents;
-        std::fseek(fp, 0, SEEK_END);
-        contents.resize(std::ftell(fp));
-        std::rewind(fp);
-        std::fread(&contents[0], 1, contents.size(), fp);
-        std::fclose(fp);
-        return(contents);
-    }
-    throw(errno);
-}
-
-/**
- *
- * @param d
- * @param folderPath
- * @param inputPath
- * @param outputPath
+ * @param d delimiter
+ * @param folderPath index folder path
+ * @param inputPath input text path
+ * @param outputPath output text path
  */
 void Encoder::encode(const char &d, const std::string &folderPath,
                      const char *inputPath, const std::string &outputPath)
 {
-    // Read the entire input file
-    std::string s = get_file_contents(inputPath);
-    std::cout << "Size of file: " << s.length() / 1024 << " KB" << std::endl;
-
-
+    Util util;
     BWT bwt;
+
+    // Read the entire input file
+    std::string s = util.get_file_contents(inputPath);
+
+    // Replaces all delimiters with $ before transforming
+    if (d != '$')
+        std::replace(s.begin(), s.end(), d, '$');
 
     // Encode
     std::vector<int> suffixArray = bwt.build_suffix_array(s);
 
+    if (d != '$')
+        std::replace(s.begin(), s.end(), '$', d);
+
     // Construct last column of BWT from suffix array in linear time
     std::string encoded;
 
-    for (int i = 0; i < s.length(); ++i)
+    // positions of delimiters in the last column L of the bwt,
+    // with same order as delimiters in L
+    std::vector<int> lpos;
+    // positions of delimiters in orginal text, with same
+    // order as delimiters in the original text
+    std::vector<int> tpos;
+    // Mappings between tpos and lpos
+    std::vector<int> pos;
+
+
+    for (size_t i = 0; i < s.length(); ++i)
     {
         int bwtIndex = suffixArray[i] - 1;
 
         if (bwtIndex < 0)
             bwtIndex = s.length() - 1;
 
+        if(s[bwtIndex] == d)
+            lpos.push_back(bwtIndex);
+
+        if(s[i] == d)
+            tpos.push_back(i);
+
         encoded.append(s.substr(bwtIndex, 1));
     }
 
-    write_encoded_file(outputPath, encoded);
+    util.write_encoded_file(outputPath, encoded);
 
-    write_pos_info(folderPath, s, d);
+    for (unsigned int i = 0; i < tpos.size(); i ++)
+    {
+        std::vector<int>::iterator it = std::find(lpos.begin(), lpos.end(), tpos[i]);
+        int index = std::distance(lpos.begin(), it);
+        pos.push_back(index);
+    }
+
+    util.write_pos_info(outputPath, pos);
 }
 
 

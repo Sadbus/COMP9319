@@ -1,12 +1,7 @@
 #include <iostream>
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <algorithm>
-#include <cstring>
-#include <ctime>
-#include "bwt.h"
+
 #include "encoder.h"
+
 
 int main(int argc, char* argv[])
 {
@@ -22,17 +17,10 @@ int main(int argc, char* argv[])
     if (str.find("\\n") != std::string::npos)
         d = '\n';
     else
-        d = str.at(3);
-
-    std::clock_t begin = std::clock();
+        d = str[1];
 
     Encoder encoder;
     encoder.encode(d, argv[2], argv[3], argv[4]);
-
-    std::clock_t end = clock();
-
-    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-    std::cout << "Time elapsed: " << elapsed_secs << " sec" << std::endl;
 
     return 0;
 }
