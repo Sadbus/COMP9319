@@ -47,6 +47,7 @@ void Encoder::encode(const char &d, const std::string &folderPath,
     // Mappings between tpos and lpos
     std::vector<int> pos;
 
+
     for (size_t i = 0; i < s.length(); ++i)
     {
         int bwtIndex = suffixArray[i] - 1;
